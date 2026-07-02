@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Application de gestion de tâches professionnelle — ajoutez, modifiez et supprimez vos tâches facilement." />
+    <title>Task Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Point d'entrée Vite -->
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+
+    <!-- ═══════════════════════════════════════════
+         BARRE DE TITRE / HEADER
+    ═══════════════════════════════════════════ -->
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">✓</span>
+          <h1>Task Manager</h1>
+        </div>
+        <div id="task-counter" class="task-counter">
+          <span id="counter-total">0</span> tâche(s)
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+         CONTENU PRINCIPAL
+    ═══════════════════════════════════════════ -->
+    <main class="main-container">
+
+      <!-- Formulaire d'ajout / modification -->
+      <section class="form-section">
+        <div class="form-card">
+          <h2 class="form-title" id="form-heading">Ajouter une tâche</h2>
+
+          <form id="task-form" novalidate>
+            <!-- Champ masqué pour l'ID lors d'une modification -->
+            <input type="hidden" id="task-id" value="" />
+
+            <div class="form-group">
+              <label for="task-titre" class="form-label">Titre <span class="required">*</span></label>
+              <input
+                type="text"
+                id="task-titre"
+                class="form-input"
+                placeholder="Ex : Préparer la présentation"
+                maxlength="200"
+                required
+              />
+              <span class="field-error" id="titre-error"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="task-description" class="form-label">Description <span class="required">*</span></label>
+              <textarea
+                id="task-description"
+                class="form-textarea"
+                placeholder="Décrivez votre tâche en détail..."
+                rows="3"
+                maxlength="2000"
+                required
+              ></textarea>
+              <span class="field-error" id="description-error"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="task-statut" class="form-label">Statut</label>
+              <select id="task-statut" class="form-select">
+                <option value="À faire">À faire</option>
+                <option value="En cours">En cours</option>
+                <option value="Terminée">Terminée</option>
+              </select>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="submit-btn">
+                <span class="btn-icon">+</span>
+                <span id="submit-label">Ajouter</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="cancel-btn" style="display:none">
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Liste des tâches -->
+      <section class="tasks-section">
+        <div class="tasks-header">
+          <h2 class="section-title">Mes tâches</h2>
+          <div class="filter-group">
+            <label for="filter-statut" class="filter-label">Filtrer :</label>
+            <select id="filter-statut" class="filter-select">
+              <option value="">Tous les statuts</option>
+              <option value="À faire">À faire</option>
+              <option value="En cours">En cours</option>
+              <option value="Terminée">Terminée</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- État de chargement -->
+        <div id="loading-state" class="loading-state">
+          <div class="spinner"></div>
+          <p>Chargement des tâches…</p>
+        </div>
+
+        <!-- État vide -->
+        <div id="empty-state" class="empty-state" style="display:none">
+          <div class="empty-icon">📋</div>
+          <h3>Aucune tâche</h3>
+          <p>Commencez par ajouter votre première tâche ci-dessus.</p>
+        </div>
+
+        <!-- Grille des tâches -->
+        <div id="task-list" class="task-grid" style="display:none"></div>
+
+        <!-- Zone de notification -->
+        <div id="toast-container" class="toast-container"></div>
+      </section>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="app-footer">
+      <p>Task Manager &mdash; Développé par <strong>Maodo Ka</strong></p>
+    </footer>
+
+  </body>
+</html>

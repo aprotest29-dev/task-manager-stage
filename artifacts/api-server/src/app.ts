@@ -25,7 +25,17 @@ app.use(
     },
   }),
 );
-app.use(cors());
+// CORS : autoriser le frontend (même domaine en production, toutes origines en dev)
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? (process.env.ALLOWED_ORIGINS ?? "").split(",").filter(Boolean)
+        : true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

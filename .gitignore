@@ -1,49 +1,74 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ───────────────────────────────────────────
+# .gitignore — Task Manager
+# ───────────────────────────────────────────
 
-# compiled output
-dist
-tmp
-out-tsc
-*.tsbuildinfo
-.expo
-.expo-shared
+# Dépendances Node.js
+node_modules/
+.pnpm-store/
 
-# dependencies
-node_modules
+# Builds et distributions
+dist/
+build/
+.output/
+out/
 
-# IDEs and editors
-/.idea
+# Variables d'environnement (JAMAIS versionner les secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Système d'exploitation
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Éditeurs et IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .project
 .classpath
-.c9/
-*.launch
 .settings/
-*.sublime-workspace
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
-# misc
-/.sass-cache
-/connect.lock
-/coverage
-/libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
-
-# System Files
-.DS_Store
-Thumbs.db
-
-.cursor/rules/nx-rules.mdc
-.github/instructions/nx.instructions.md
-
-# Replit
+# Cache
 .cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Tests
+coverage/
+.nyc_output/
+
+# Replit (fichiers internes de la plateforme)
+.replit
+replit.nix
 .local/
+
+# Fichiers temporaires
+tmp/
+temp/
+*.tmp
+*.temp

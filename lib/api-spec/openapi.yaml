@@ -2,14 +2,16 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: API REST du Task Manager — gestion complète des tâches (CRUD)
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: tasks
+    description: Gestion des tâches
 paths:
   /healthz:
     get:
@@ -24,6 +26,124 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: Lister toutes les tâches
+      description: Retourne la liste complète des tâches enregistrées.
+      responses:
+        "200":
+          description: Liste récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskListResponse"
+
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Créer une tâche
+      description: Crée une nouvelle tâche avec les données fournies.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Tâche créée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "400":
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Identifiant unique de la tâche
+
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Obtenir une tâche
+      description: Retourne une tâche par son identifiant.
+      responses:
+        "200":
+          description: Tâche trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "404":
+          description: Tâche introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Mettre à jour une tâche
+      description: Met à jour les champs fournis d'une tâche existante.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Tâche mise à jour avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "400":
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tâche introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Supprimer une tâche
+      description: Supprime définitivement une tâche par son identifiant.
+      responses:
+        "200":
+          description: Tâche supprimée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Tâche introuvable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +154,108 @@ components:
       required:
         - status
 
+    TaskStatus:
+      type: string
+      enum: ["À faire", "En cours", "Terminée"]
+      description: Statut possible d'une tâche
+
+    Task:
+      type: object
+      required: [id, titre, description, statut, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          description: Identifiant unique
+        titre:
+          type: string
+          maxLength: 200
+          description: Titre de la tâche
+        description:
+          type: string
+          maxLength: 2000
+          description: Description détaillée
+        statut:
+          $ref: "#/components/schemas/TaskStatus"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskInput:
+      type: object
+      required: [titre, description]
+      properties:
+        titre:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Titre de la tâche
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Description détaillée
+        statut:
+          $ref: "#/components/schemas/TaskStatus"
+
+    TaskUpdate:
+      type: object
+      properties:
+        titre:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        statut:
+          $ref: "#/components/schemas/TaskStatus"
+
+    TaskListResponse:
+      type: object
+      required: [success, count, data]
+      properties:
+        success:
+          type: boolean
+        count:
+          type: integer
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+
+    TaskResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: ["string", "null"]
+        data:
+          $ref: "#/components/schemas/Task"
+
+    SuccessResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string

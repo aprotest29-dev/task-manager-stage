@@ -24,7 +24,8 @@
 | Backend   | Node.js + Express.js (v5)     |
 | Frontend  | HTML5, CSS3, JavaScript Vanilla (TypeScript) |
 | Stockage  | En mémoire (prêt MySQL)       |
-| Outillage | Vite, pnpm, TypeScript        |
+| Outillage | Vite, pnpm, TypeScript, Git   |
+| Tests     | Postman (collection incluse)  |
 
 ---
 
@@ -81,20 +82,25 @@ task-manager/
 │   ├── api-server/               # Serveur Express.js (API REST)
 │   │   └── src/
 │   │       ├── controllers/      # Logique métier (taskController.ts)
-│   │       ├── middleware/       # Validation des données
-│   │       ├── models/          # Modèle de données + stockage mémoire
-│   │       └── routes/          # Définition des endpoints Express
+│   │       ├── middleware/       # Validation des données entrantes
+│   │       ├── models/           # Modèle de données + stockage mémoire
+│   │       └── routes/           # Définition des endpoints Express
 │   │
 │   └── task-manager/             # Frontend (HTML, CSS, JS Vanilla)
+│       ├── index.html            # Structure HTML de la page
 │       └── src/
-│           ├── app.ts            # Module principal (CRUD via fetch)
+│           ├── api.ts            # Couche HTTP — appels fetch vers l'API
+│           ├── app.ts            # Logique UI, état, rendu des tâches
 │           ├── main.ts           # Point d'entrée Vite
-│           └── style.css        # Styles CSS (design professionnel)
+│           └── style.css         # Styles CSS (design professionnel)
 │
 ├── lib/
 │   ├── api-spec/                 # Contrat OpenAPI (source de vérité)
 │   ├── api-client-react/         # Hooks générés par Orval
-│   └── api-zod/                 # Schemas Zod de validation
+│   └── api-zod/                  # Schemas Zod de validation
+│
+├── postman/
+│   └── Task_Manager.postman_collection.json   # Collection Postman (10 tests)
 │
 └── README.md
 ```
@@ -221,6 +227,46 @@ Supprime une tâche par son identifiant.
   "message": "Tâche \"1\" supprimée avec succès."
 }
 ```
+
+---
+
+## Tests avec Postman
+
+Une collection Postman complète est incluse dans le dépôt : `postman/Task_Manager.postman_collection.json`
+
+### Importer la collection
+
+1. Ouvrir **Postman**
+2. Cliquer sur **Import** → sélectionner le fichier `postman/Task_Manager.postman_collection.json`
+3. La collection **"Task Manager — API REST"** apparaît dans le panneau de gauche
+
+### Configurer l'URL de base
+
+La collection utilise une variable `{{base_url}}`. La modifier selon l'environnement :
+
+| Environnement | Valeur |
+|---------------|--------|
+| Local         | `http://localhost:8080` |
+| Production    | URL complète du serveur déployé |
+
+> Dans Postman : cliquer sur la collection → onglet **Variables** → modifier `base_url`.
+
+### Cas de test couverts (10 requêtes)
+
+| Méthode | Endpoint           | Cas testé                          |
+|---------|--------------------|------------------------------------|
+| GET     | `/api/healthz`     | Vérification que le serveur répond |
+| GET     | `/api/tasks`       | Liste complète des tâches          |
+| GET     | `/api/tasks/:id`   | Tâche existante (200)              |
+| GET     | `/api/tasks/999`   | Tâche inexistante (404)            |
+| POST    | `/api/tasks`       | Création valide (201)              |
+| POST    | `/api/tasks`       | Champs manquants (400)             |
+| POST    | `/api/tasks`       | Statut invalide (400)              |
+| PUT     | `/api/tasks/:id`   | Mise à jour partielle (200)        |
+| PUT     | `/api/tasks/:id`   | Corps vide (400)                   |
+| DELETE  | `/api/tasks/:id`   | Suppression (200) puis 404         |
+
+> Les IDs sont transmis automatiquement entre requêtes via les **variables de collection** Postman (`task_id` mis à jour après chaque création).
 
 ---
 

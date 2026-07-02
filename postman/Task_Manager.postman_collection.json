@@ -1,0 +1,473 @@
+{
+  "info": {
+    "name": "Task Manager — API REST",
+    "description": "Collection de tests pour l'API REST du Task Manager.\nRecouvre les 5 opérations CRUD sur la ressource /api/tasks.\n\nVariable d'environnement requise : {{base_url}}\nExemple : http://localhost:8080",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "URL de base du serveur API. Modifier selon l'environnement (local, production, etc.)."
+    },
+    {
+      "key": "task_id",
+      "value": "1",
+      "type": "string",
+      "description": "ID d'une tâche existante, mis à jour automatiquement lors de la création."
+    }
+  ],
+  "item": [
+    {
+      "name": "Santé de l'API",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/healthz",
+              "host": ["{{base_url}}"],
+              "path": ["api", "healthz"]
+            },
+            "description": "Vérifie que le serveur est opérationnel."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Corps JSON valide', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('status', 'ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tâches (CRUD)",
+      "item": [
+        {
+          "name": "GET — Lister toutes les tâches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"]
+            },
+            "description": "Retourne la liste complète des tâches.\nCode attendu : 200"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Corps JSON valide', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json).to.have.property('count');",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Chaque tâche a les champs requis', () => {",
+                  "  const tasks = pm.response.json().data;",
+                  "  if (tasks.length > 0) {",
+                  "    const task = tasks[0];",
+                  "    pm.expect(task).to.have.all.keys('id', 'titre', 'description', 'statut', 'createdAt', 'updatedAt');",
+                  "  }",
+                  "});",
+                  "",
+                  "// Sauvegarder l'id de la première tâche pour les tests suivants",
+                  "const tasks = pm.response.json().data;",
+                  "if (tasks && tasks.length > 0) {",
+                  "  pm.collectionVariables.set('task_id', tasks[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET — Obtenir une tâche par ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}"]
+            },
+            "description": "Retourne une tâche spécifique par son identifiant.\nCode attendu : 200 si trouvée, 404 sinon."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Tâche retournée avec les bons champs', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('object');",
+                  "  pm.expect(json.data.id).to.equal(pm.collectionVariables.get('task_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET — Tâche introuvable (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/999999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "999999"]
+            },
+            "description": "Vérifie que l'API retourne 404 pour un ID inexistant."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Réponse d\\'erreur correcte', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST — Créer une tâche",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titre\": \"Rédiger la documentation technique\",\n  \"description\": \"Documenter tous les endpoints de l'API REST avec des exemples de requêtes et réponses.\",\n  \"statut\": \"À faire\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"]
+            },
+            "description": "Crée une nouvelle tâche.\nChamps requis : titre, description. Champ optionnel : statut.\nCode attendu : 201"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test('Tâche créée avec les bons champs', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data).to.be.an('object');",
+                  "  pm.expect(json.data.titre).to.equal('Rédiger la documentation technique');",
+                  "  pm.expect(json.data.statut).to.equal('À faire');",
+                  "  pm.expect(json.data).to.have.property('id');",
+                  "  pm.expect(json.data).to.have.property('createdAt');",
+                  "});",
+                  "",
+                  "// Sauvegarder l'ID pour les tests de mise à jour et suppression",
+                  "const id = pm.response.json().data?.id;",
+                  "if (id) pm.collectionVariables.set('task_id', id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST — Validation : champs manquants (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titre\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"]
+            },
+            "description": "Vérifie que l'API rejette une requête avec des champs invalides.\nCode attendu : 400 avec liste d'erreurs."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('Réponse contient les erreurs de validation', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.errors).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST — Validation : statut invalide (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titre\": \"Tâche de test\",\n  \"description\": \"Une description valide.\",\n  \"statut\": \"Invalide\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks"]
+            },
+            "description": "Vérifie que l'API rejette un statut non autorisé.\nValeurs autorisées : 'À faire', 'En cours', 'Terminée'."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('Erreur de validation sur le statut', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  const mentionsStatut = json.errors.some(e => e.includes('statut'));",
+                  "  pm.expect(mentionsStatut).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT — Mettre à jour une tâche",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statut\": \"En cours\",\n  \"titre\": \"Rédiger la documentation technique (MàJ)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}"]
+            },
+            "description": "Met à jour partiellement une tâche existante.\nTous les champs sont optionnels (mise à jour partielle supportée).\nCode attendu : 200"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Tâche mise à jour correctement', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.data.statut).to.equal('En cours');",
+                  "  pm.expect(json.data.titre).to.equal('Rédiger la documentation technique (MàJ)');",
+                  "});",
+                  "",
+                  "pm.test('updatedAt est mis à jour', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.data).to.have.property('updatedAt');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PUT — Validation : aucun champ fourni (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}"]
+            },
+            "description": "Vérifie que l'API rejette une mise à jour avec un corps vide.\nCode attendu : 400"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "pm.test('Message d\\'erreur présent', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json.errors).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE — Supprimer une tâche",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}"]
+            },
+            "description": "Supprime une tâche par son identifiant.\nCode attendu : 200 si trouvée, 404 sinon."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test('Confirmation de suppression', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "DELETE — Tâche déjà supprimée (404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "tasks", "{{task_id}}"]
+            },
+            "description": "Vérifie que l'API retourne 404 si la tâche a déjà été supprimée."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut 404', () => pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Réponse d\\'erreur correcte', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.false;",
+                  "  pm.expect(json).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

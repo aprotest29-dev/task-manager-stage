@@ -17,6 +17,18 @@ let allTasks: Task[] = [];
 // et contient l'id de la tâche en cours de modification.
 let editingId: string | null = null;
 
+// ─── Configuration des groupes de statut ──────────────────────────────────────
+
+/** Ordre d'affichage des groupes : tâches actives en premier, terminées en dernier. */
+const STATUS_GROUPS: TaskStatus[] = ["En cours", "À faire", "Terminée"];
+
+/** Icône et classe CSS associées à chaque statut. */
+const STATUS_META: Record<TaskStatus, { icon: string; cssClass: string }> = {
+  "En cours": { icon: "⚡", cssClass: "group-inprogress" },
+  "À faire":  { icon: "📌", cssClass: "group-todo" },
+  "Terminée": { icon: "✓",  cssClass: "group-done" },
+};
+
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
 
 export function initApp(): void {
@@ -173,18 +185,19 @@ function clearFieldErrors(): void {
   document.querySelectorAll(".form-input, .form-textarea").forEach((el) => el.classList.remove("error"));
 }
 
-// ─── Rendu de la liste des tâches ─────────────────────────────────────────────
+// ─── Rendu de la liste des tâches (groupée par statut) ────────────────────────
 
 function renderTaskList(): void {
-  const taskListEl  = document.getElementById("task-list")     as HTMLDivElement;
-  const emptyEl     = document.getElementById("empty-state")   as HTMLDivElement;
-  const filterValue = (document.getElementById("filter-statut") as HTMLSelectElement).value;
+  const taskListEl   = document.getElementById("task-list")     as HTMLDivElement;
+  const emptyEl      = document.getElementById("empty-state")   as HTMLDivElement;
+  const filterValue  = (document.getElementById("filter-statut") as HTMLSelectElement).value as TaskStatus | "";
 
-  const visibleTasks = filterValue
-    ? allTasks.filter((task) => task.statut === filterValue)
-    : allTasks;
+  // Si un filtre est actif, on n'affiche que ce groupe ; sinon tous dans l'ordre défini.
+  const statusesToShow: TaskStatus[] = filterValue ? [filterValue] : STATUS_GROUPS;
 
-  if (visibleTasks.length === 0) {
+  const hasAnyTask = statusesToShow.some((s) => allTasks.some((t) => t.statut === s));
+
+  if (!hasAnyTask) {
     taskListEl.style.display = "none";
     emptyEl.style.display    = "flex";
     return;
@@ -192,9 +205,34 @@ function renderTaskList(): void {
 
   emptyEl.style.display    = "none";
   taskListEl.style.display = "flex";
-  taskListEl.innerHTML     = visibleTasks.map(buildTaskCardHTML).join("");
+
+  taskListEl.innerHTML = statusesToShow
+    .map((status) => {
+      const tasks = allTasks.filter((t) => t.statut === status);
+      return tasks.length > 0 ? buildStatusGroupHTML(status, tasks) : "";
+    })
+    .join("");
 
   bindTaskCardButtons(taskListEl);
+}
+
+/** Construit le HTML d'un groupe de tâches avec son en-tête coloré. */
+function buildStatusGroupHTML(status: TaskStatus, tasks: Task[]): string {
+  const { icon, cssClass } = STATUS_META[status];
+  return `
+    <div class="status-group ${cssClass}">
+      <div class="status-group-header">
+        <div class="status-group-label">
+          <span class="status-group-icon">${icon}</span>
+          <span>${esc(status)}</span>
+        </div>
+        <span class="status-group-count">${tasks.length}</span>
+      </div>
+      <div class="status-group-cards">
+        ${tasks.map(buildTaskCardHTML).join("")}
+      </div>
+    </div>
+  `;
 }
 
 /** Attache les événements des boutons Modifier / Supprimer après le rendu. */
@@ -238,7 +276,6 @@ async function handleDeleteClick(btn: HTMLButtonElement): Promise<void> {
 // ─── Génération HTML d'une carte de tâche ────────────────────────────────────
 
 function buildTaskCardHTML(task: Task): string {
-  const badgeClass = getStatusBadgeClass(task.statut);
   const updatedDate = new Date(task.updatedAt).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
@@ -247,15 +284,11 @@ function buildTaskCardHTML(task: Task): string {
 
   return `
     <article class="task-card" data-id="${esc(task.id)}" data-statut="${esc(task.statut)}">
-      <div class="task-card-header">
+      <div class="task-card-body">
         <h3 class="task-titre">${esc(task.titre)}</h3>
-        <span class="task-statut-badge ${badgeClass}">
-          <span class="badge-dot"></span>
-          ${esc(task.statut)}
-        </span>
+        <p class="task-description">${esc(task.description)}</p>
+        <p class="task-meta">Modifiée le ${updatedDate}</p>
       </div>
-      <p class="task-description">${esc(task.description)}</p>
-      <p class="task-meta">Modifiée le ${updatedDate}</p>
       <div class="task-card-footer">
         <button class="btn btn-edit"   data-id="${esc(task.id)}" title="Modifier cette tâche">✏ Modifier</button>
         <button class="btn btn-delete" data-id="${esc(task.id)}" title="Supprimer cette tâche">🗑 Supprimer</button>
@@ -265,14 +298,6 @@ function buildTaskCardHTML(task: Task): string {
 }
 
 // ─── Fonctions utilitaires ────────────────────────────────────────────────────
-
-function getStatusBadgeClass(statut: TaskStatus): string {
-  switch (statut) {
-    case "À faire":  return "badge-todo";
-    case "En cours": return "badge-inprogress";
-    case "Terminée": return "badge-done";
-  }
-}
 
 /** Échappe les caractères spéciaux HTML pour prévenir les injections XSS. */
 function esc(value: string): string {

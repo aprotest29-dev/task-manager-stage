@@ -395,22 +395,86 @@ body  {
 .filter-select:focus { border-color: var(--color-primary); }
 
 /* ─── Grille de tâches ───────────────────────────────────────── */
-.task-grid { display: flex; flex-direction: column; gap: .875rem; }
+.task-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── Groupes de statut ──────────────────────────────────────── */
+.status-group {
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+}
+
+.status-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .55rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.group-inprogress .status-group-header {
+  background: var(--status-inprogress-bg);
+  border-color: var(--status-inprogress-border);
+  color: var(--status-inprogress-color);
+}
+.group-todo .status-group-header {
+  background: var(--status-todo-bg);
+  border-color: var(--status-todo-border);
+  color: var(--status-todo-color);
+}
+.group-done .status-group-header {
+  background: var(--status-done-bg);
+  border-color: var(--status-done-border);
+  color: var(--status-done-color);
+}
+
+.status-group-label {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.status-group-icon { font-size: .85rem; }
+
+.status-group-count {
+  background: rgba(255,255,255,.85);
+  border-radius: 999px;
+  padding: .1rem .55rem;
+  font-size: .68rem;
+  font-weight: 800;
+  min-width: 22px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+
+.status-group-cards {
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+}
 
 /* ─── Carte de tâche ─────────────────────────────────────────── */
 .task-card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  border-left: 5px solid transparent;
-  padding: 1.25rem 1.5rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: .75rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
   transition: transform var(--duration) var(--ease),
               box-shadow var(--duration) var(--ease);
-  animation: cardIn .22s var(--ease);
+  animation: cardIn .2s var(--ease);
+  overflow: hidden;
 }
 
 .task-card:hover {
@@ -418,23 +482,21 @@ body  {
   box-shadow: var(--shadow-md);
 }
 
-/* Accents colorés par statut */
-.task-card[data-statut="À faire"]  { border-left-color: var(--status-todo-border); }
-.task-card[data-statut="En cours"] { border-left-color: var(--status-inprogress-border); }
-.task-card[data-statut="Terminée"] {
-  border-left-color: var(--status-done-border);
-  background: #fafdfb;
+/* Bande colorée en haut de chaque carte selon son groupe */
+.group-inprogress .task-card { border-top: 3px solid var(--status-inprogress-border); }
+.group-todo       .task-card { border-top: 3px solid var(--status-todo-border); }
+.group-done       .task-card {
+  border-top: 3px solid var(--status-done-border);
+  background: #f9fdfb;
 }
-.task-card[data-statut="Terminée"] .task-titre {
-  text-decoration: line-through;
-  color: var(--text-muted);
-}
+.group-done .task-card:hover { opacity: 1; }
 
-.task-card-header {
+.task-card-body {
+  padding: 1rem 1.25rem .875rem;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: .5rem;
+  flex: 1;
 }
 
 .task-titre {
@@ -443,59 +505,24 @@ body  {
   color: var(--text-heading);
   line-height: 1.45;
   letter-spacing: -.01em;
-  flex: 1;
 }
 
-/* ─── Badges de statut ───────────────────────────────────────── */
-.task-statut-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  font-size: .7rem;
-  font-weight: 700;
-  padding: .25rem .7rem;
-  border-radius: 999px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  letter-spacing: .02em;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.badge-todo {
-  background: var(--status-todo-bg);
-  color: var(--status-todo-color);
-  border-color: #fde68a;
-}
-.badge-inprogress {
-  background: var(--status-inprogress-bg);
-  color: var(--status-inprogress-color);
-  border-color: #bfdbfe;
-}
-.badge-done {
-  background: var(--status-done-bg);
-  color: var(--status-done-color);
-  border-color: #a7f3d0;
-}
-
-.badge-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  flex-shrink: 0;
+.group-done .task-titre {
+  text-decoration: line-through;
+  color: var(--text-muted);
 }
 
 .task-description {
-  font-size: .87rem;
+  font-size: .855rem;
   color: var(--text-secondary);
   line-height: 1.65;
 }
 
 .task-meta {
-  font-size: .72rem;
+  font-size: .7rem;
   color: var(--text-muted);
   font-weight: 500;
+  margin-top: .125rem;
 }
 
 .task-card-footer {
@@ -503,16 +530,16 @@ body  {
   align-items: center;
   justify-content: flex-end;
   gap: .5rem;
-  padding-top: .875rem;
+  padding: .625rem 1rem;
+  background: #fafafa;
   border-top: 1px solid var(--border);
-  margin-top: .125rem;
 }
 
 /* Boutons d'action des cartes */
 .btn-edit {
-  padding: .4rem .875rem;
-  font-size: .78rem;
-  border-radius: var(--radius-sm);
+  padding: .35rem .8rem;
+  font-size: .75rem;
+  border-radius: 6px;
   background: transparent;
   color: var(--color-primary);
   border: 1.5px solid #c7d2fe;
@@ -527,13 +554,12 @@ body  {
 .btn-edit:hover {
   background: var(--brand-light);
   border-color: var(--color-primary);
-  transform: translateY(-1px);
 }
 
 .btn-delete {
-  padding: .4rem .875rem;
-  font-size: .78rem;
-  border-radius: var(--radius-sm);
+  padding: .35rem .8rem;
+  font-size: .75rem;
+  border-radius: 6px;
   background: transparent;
   color: var(--color-danger);
   border: 1.5px solid #fecaca;
@@ -548,7 +574,6 @@ body  {
 .btn-delete:hover {
   background: #fef2f2;
   border-color: var(--color-danger);
-  transform: translateY(-1px);
 }
 
 /* ─── État de chargement ─────────────────────────────────────── */

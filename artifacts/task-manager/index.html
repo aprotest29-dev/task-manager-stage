@@ -11,22 +11,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700&display=swap"
       rel="stylesheet"
     />
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
 
-    <!-- Header -->
+    <!-- Header applicatif -->
     <header class="app-header">
       <div class="header-inner">
         <div class="logo">
           <span class="logo-icon">✓</span>
-          <h1>Task Manager</h1>
+          <div class="logo-text">
+            <h1>Task Manager</h1>
+            <span class="logo-subtitle">Gestion de tâches</span>
+          </div>
         </div>
-        <div id="task-counter" class="task-counter">
-          <span id="counter-total">0</span> tâche(s)
+        <div class="header-right">
+          <div id="task-counter" class="task-counter">
+            <span id="counter-total">0</span> tâche(s)
+          </div>
         </div>
       </div>
     </header>
@@ -34,68 +39,77 @@
     <!-- Contenu principal -->
     <main class="main-container">
 
-      <!-- Formulaire d'ajout / modification -->
+      <!-- Panneau formulaire -->
       <section class="form-section">
         <div class="form-card">
-          <h2 class="form-title" id="form-heading">Ajouter une tâche</h2>
 
-          <form id="task-form" novalidate>
-            <input type="hidden" id="task-id" value="" />
+          <!-- En-tête du formulaire -->
+          <div class="form-card-header">
+            <div class="form-card-icon">✦</div>
+            <h2 class="form-title" id="form-heading">Nouvelle tâche</h2>
+          </div>
 
-            <div class="form-group">
-              <label for="task-titre" class="form-label">
-                Titre <span class="required">*</span>
-              </label>
-              <input
-                type="text"
-                id="task-titre"
-                class="form-input"
-                placeholder="Ex : Préparer la présentation"
-                maxlength="200"
-                required
-              />
-              <span class="field-error" id="titre-error"></span>
-            </div>
+          <!-- Corps du formulaire -->
+          <div class="form-body">
+            <form id="task-form" novalidate>
+              <input type="hidden" id="task-id" value="" />
 
-            <div class="form-group">
-              <label for="task-description" class="form-label">
-                Description <span class="required">*</span>
-              </label>
-              <textarea
-                id="task-description"
-                class="form-textarea"
-                placeholder="Décrivez votre tâche en détail..."
-                rows="3"
-                maxlength="2000"
-                required
-              ></textarea>
-              <span class="field-error" id="description-error"></span>
-            </div>
+              <div class="form-group">
+                <label for="task-titre" class="form-label">
+                  Titre <span class="required">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="task-titre"
+                  class="form-input"
+                  placeholder="Ex : Préparer la présentation"
+                  maxlength="200"
+                  required
+                  autocomplete="off"
+                />
+                <span class="field-error" id="titre-error"></span>
+              </div>
 
-            <div class="form-group">
-              <label for="task-statut" class="form-label">Statut</label>
-              <select id="task-statut" class="form-select">
-                <option value="À faire">À faire</option>
-                <option value="En cours">En cours</option>
-                <option value="Terminée">Terminée</option>
-              </select>
-            </div>
+              <div class="form-group">
+                <label for="task-description" class="form-label">
+                  Description <span class="required">*</span>
+                </label>
+                <textarea
+                  id="task-description"
+                  class="form-textarea"
+                  placeholder="Décrivez votre tâche en détail..."
+                  rows="4"
+                  maxlength="2000"
+                  required
+                ></textarea>
+                <span class="field-error" id="description-error"></span>
+              </div>
 
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary" id="submit-btn">
-                <span class="btn-icon">+</span>
-                <span id="submit-label">Ajouter</span>
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                id="cancel-btn"
-                style="display:none"
-              >
-                Annuler
-              </button>
-            </div>
-          </form>
+              <div class="form-group">
+                <label for="task-statut" class="form-label">Statut</label>
+                <select id="task-statut" class="form-select">
+                  <option value="À faire">À faire</option>
+                  <option value="En cours">En cours</option>
+                  <option value="Terminée">Terminée</option>
+                </select>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                  <span class="btn-icon">+</span>
+                  <span id="submit-label">Ajouter</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="cancel-btn"
+                  style="display:none"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 
@@ -104,7 +118,7 @@
         <div class="tasks-header">
           <h2 class="section-title">Mes tâches</h2>
           <div class="filter-group">
-            <label for="filter-statut" class="filter-label">Filtrer :</label>
+            <label for="filter-statut" class="filter-label">Filtrer</label>
             <select id="filter-statut" class="filter-select">
               <option value="">Tous les statuts</option>
               <option value="À faire">À faire</option>
@@ -114,23 +128,23 @@
           </div>
         </div>
 
-        <!-- Affiché pendant le chargement initial -->
+        <!-- Chargement initial -->
         <div id="loading-state" class="loading-state">
           <div class="spinner"></div>
           <p>Chargement des tâches…</p>
         </div>
 
-        <!-- Affiché quand il n'y a aucune tâche (ou aucun résultat de filtre) -->
+        <!-- Aucune tâche -->
         <div id="empty-state" class="empty-state" style="display:none">
           <div class="empty-icon">📋</div>
           <h3>Aucune tâche</h3>
-          <p>Commencez par ajouter votre première tâche ci-dessus.</p>
+          <p>Ajoutez votre première tâche à l'aide du formulaire.</p>
         </div>
 
-        <!-- Grille des cartes de tâches -->
+        <!-- Grille des tâches -->
         <div id="task-list" class="task-grid" style="display:none"></div>
 
-        <!-- Notifications temporaires (toasts) -->
+        <!-- Zone de notifications -->
         <div id="toast-container" class="toast-container"></div>
       </section>
 
@@ -138,7 +152,7 @@
 
     <!-- Pied de page -->
     <footer class="app-footer">
-      <p>Task Manager &mdash; Développé par <strong>Maodo Ka</strong></p>
+      Task Manager &mdash; Développé par <strong>Maodo Ka</strong>
     </footer>
 
   </body>

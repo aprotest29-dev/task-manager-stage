@@ -129,7 +129,7 @@ function resetForm(): void {
 function setFormMode(mode: "create" | "edit"): void {
   const isEdit = mode === "edit";
 
-  (document.getElementById("form-heading")  as HTMLHeadingElement).textContent  = isEdit ? "Modifier la tâche"  : "Ajouter une tâche";
+  (document.getElementById("form-heading")  as HTMLHeadingElement).textContent  = isEdit ? "Modifier la tâche"  : "Nouvelle tâche";
   (document.getElementById("submit-label")  as HTMLSpanElement).textContent     = isEdit ? "Enregistrer"        : "Ajouter";
   (document.querySelector(".btn-icon")      as HTMLSpanElement).textContent      = isEdit ? "✓"                 : "+";
   (document.getElementById("cancel-btn")   as HTMLButtonElement).style.display  = isEdit ? "inline-flex"       : "none";

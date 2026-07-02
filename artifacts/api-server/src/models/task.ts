@@ -1,8 +1,9 @@
 /**
- * Modèle de données pour une tâche.
- * Le stockage est en mémoire pour simplifier le développement.
- * Pour migrer vers MySQL, il suffit de remplacer le tableau `tasks`
- * par des requêtes Drizzle ORM (voir commentaires ci-dessous).
+ * Modèle de données pour la ressource "tâche".
+ *
+ * Stockage en mémoire pour simplifier le développement.
+ * Pour migrer vers MySQL : remplacer chaque fonction par son équivalent
+ * Drizzle ORM commenté ci-dessous.
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,24 +19,27 @@ export interface Task {
   updatedAt: string;
 }
 
+/** Données requises pour créer une tâche. */
 export interface CreateTaskDTO {
   titre: string;
   description: string;
   statut?: TaskStatus;
 }
 
+/** Données autorisées lors d'une mise à jour partielle. */
 export interface UpdateTaskDTO {
   titre?: string;
   description?: string;
   statut?: TaskStatus;
 }
 
-// ─── Statuts valides ──────────────────────────────────────────────────────────
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
+/** Valeurs autorisées pour le champ `statut`. */
 export const VALID_STATUSES: TaskStatus[] = ["À faire", "En cours", "Terminée"];
 
 // ─── Stockage en mémoire ──────────────────────────────────────────────────────
-// Pour MySQL : remplacer par une table `tasks` avec Drizzle ORM.
+// MySQL : remplacer par une table `tasks` avec les colonnes ci-dessus.
 
 let tasks: Task[] = [
   {
@@ -43,24 +47,24 @@ let tasks: Task[] = [
     titre: "Configurer l'environnement de développement",
     description: "Installer Node.js, npm et les dépendances du projet",
     statut: "Terminée",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: "2026-01-10T09:00:00.000Z",
+    updatedAt: "2026-01-10T09:00:00.000Z",
   },
   {
     id: "2",
     titre: "Développer l'API REST",
     description: "Créer les endpoints CRUD pour la gestion des tâches",
     statut: "En cours",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: "2026-01-11T10:30:00.000Z",
+    updatedAt: "2026-01-11T10:30:00.000Z",
   },
   {
     id: "3",
     titre: "Créer l'interface utilisateur",
     description: "Développer le frontend en HTML, CSS et JavaScript Vanilla",
     statut: "À faire",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: "2026-01-12T14:00:00.000Z",
+    updatedAt: "2026-01-12T14:00:00.000Z",
   },
 ];
 
@@ -68,20 +72,20 @@ let nextId = 4;
 
 // ─── Opérations CRUD ──────────────────────────────────────────────────────────
 
-/** Retourne toutes les tâches. MySQL : SELECT * FROM tasks */
+/** MySQL : SELECT * FROM tasks ORDER BY createdAt DESC */
 export function getAllTasks(): Task[] {
   return tasks;
 }
 
-/** Retourne une tâche par son ID. MySQL : SELECT * FROM tasks WHERE id = ? */
+/** MySQL : SELECT * FROM tasks WHERE id = ? LIMIT 1 */
 export function getTaskById(id: string): Task | undefined {
-  return tasks.find((t) => t.id === id);
+  return tasks.find((task) => task.id === id);
 }
 
-/** Crée une nouvelle tâche. MySQL : INSERT INTO tasks ... */
+/** MySQL : INSERT INTO tasks (titre, description, statut, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) */
 export function createTask(dto: CreateTaskDTO): Task {
   const now = new Date().toISOString();
-  const task: Task = {
+  const newTask: Task = {
     id: String(nextId++),
     titre: dto.titre.trim(),
     description: dto.description.trim(),
@@ -89,13 +93,13 @@ export function createTask(dto: CreateTaskDTO): Task {
     createdAt: now,
     updatedAt: now,
   };
-  tasks.push(task);
-  return task;
+  tasks.push(newTask);
+  return newTask;
 }
 
-/** Met à jour une tâche. MySQL : UPDATE tasks SET ... WHERE id = ? */
+/** MySQL : UPDATE tasks SET titre = ?, description = ?, statut = ?, updatedAt = ? WHERE id = ? */
 export function updateTask(id: string, dto: UpdateTaskDTO): Task | null {
-  const index = tasks.findIndex((t) => t.id === id);
+  const index = tasks.findIndex((task) => task.id === id);
   if (index === -1) return null;
 
   tasks[index] = {
@@ -109,9 +113,9 @@ export function updateTask(id: string, dto: UpdateTaskDTO): Task | null {
   return tasks[index];
 }
 
-/** Supprime une tâche. MySQL : DELETE FROM tasks WHERE id = ? */
+/** MySQL : DELETE FROM tasks WHERE id = ? */
 export function deleteTask(id: string): boolean {
-  const index = tasks.findIndex((t) => t.id === id);
+  const index = tasks.findIndex((task) => task.id === id);
   if (index === -1) return false;
   tasks.splice(index, 1);
   return true;

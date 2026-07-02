@@ -1,0 +1,2 @@
+- [Frontend module split](frontend-split.md) — api.ts isole la couche HTTP ; app.ts gère l'état et le DOM ; import with `* as TaskApi` pour la lisibilité.
+- [Controller async cleanup](controller-patterns.md) — Contrôleurs Express synchrones : ne pas marquer `async` sans `await`; utiliser les DTO exportés du modèle pour typer `req.body`.

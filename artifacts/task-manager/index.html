@@ -3,19 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Application de gestion de tâches professionnelle — ajoutez, modifiez et supprimez vos tâches facilement." />
+    <meta
+      name="description"
+      content="Application de gestion de tâches — ajoutez, modifiez et supprimez vos tâches facilement."
+    />
     <title>Task Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <!-- Point d'entrée Vite -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
 
-    <!-- ═══════════════════════════════════════════
-         BARRE DE TITRE / HEADER
-    ═══════════════════════════════════════════ -->
+    <!-- Header -->
     <header class="app-header">
       <div class="header-inner">
         <div class="logo">
@@ -28,9 +31,7 @@
       </div>
     </header>
 
-    <!-- ═══════════════════════════════════════════
-         CONTENU PRINCIPAL
-    ═══════════════════════════════════════════ -->
+    <!-- Contenu principal -->
     <main class="main-container">
 
       <!-- Formulaire d'ajout / modification -->
@@ -39,11 +40,12 @@
           <h2 class="form-title" id="form-heading">Ajouter une tâche</h2>
 
           <form id="task-form" novalidate>
-            <!-- Champ masqué pour l'ID lors d'une modification -->
             <input type="hidden" id="task-id" value="" />
 
             <div class="form-group">
-              <label for="task-titre" class="form-label">Titre <span class="required">*</span></label>
+              <label for="task-titre" class="form-label">
+                Titre <span class="required">*</span>
+              </label>
               <input
                 type="text"
                 id="task-titre"
@@ -56,7 +58,9 @@
             </div>
 
             <div class="form-group">
-              <label for="task-description" class="form-label">Description <span class="required">*</span></label>
+              <label for="task-description" class="form-label">
+                Description <span class="required">*</span>
+              </label>
               <textarea
                 id="task-description"
                 class="form-textarea"
@@ -82,7 +86,12 @@
                 <span class="btn-icon">+</span>
                 <span id="submit-label">Ajouter</span>
               </button>
-              <button type="button" class="btn btn-secondary" id="cancel-btn" style="display:none">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="cancel-btn"
+                style="display:none"
+              >
                 Annuler
               </button>
             </div>
@@ -105,25 +114,26 @@
           </div>
         </div>
 
-        <!-- État de chargement -->
+        <!-- Affiché pendant le chargement initial -->
         <div id="loading-state" class="loading-state">
           <div class="spinner"></div>
           <p>Chargement des tâches…</p>
         </div>
 
-        <!-- État vide -->
+        <!-- Affiché quand il n'y a aucune tâche (ou aucun résultat de filtre) -->
         <div id="empty-state" class="empty-state" style="display:none">
           <div class="empty-icon">📋</div>
           <h3>Aucune tâche</h3>
           <p>Commencez par ajouter votre première tâche ci-dessus.</p>
         </div>
 
-        <!-- Grille des tâches -->
+        <!-- Grille des cartes de tâches -->
         <div id="task-list" class="task-grid" style="display:none"></div>
 
-        <!-- Zone de notification -->
+        <!-- Notifications temporaires (toasts) -->
         <div id="toast-container" class="toast-container"></div>
       </section>
+
     </main>
 
     <!-- Pied de page -->

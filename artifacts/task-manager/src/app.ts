@@ -1,236 +1,153 @@
 /**
  * Module principal de l'application Task Manager.
- * Architecture : Vanilla TypeScript (DOM pur, sans framework).
  *
- * Toutes les opérations CRUD utilisent fetch() en async/await.
- * Aucun rechargement de page n'est effectué.
+ * Architecture : Vanilla TypeScript, sans framework.
+ * - La couche HTTP est isolée dans `api.ts`.
+ * - Ce module gère l'état de l'application et les interactions DOM.
  */
 
-// ─── Types ─────────────────────────────────────────────────────
+import * as TaskApi from "./api.js";
+import type { Task, TaskStatus } from "./api.js";
 
-type TaskStatus = "À faire" | "En cours" | "Terminée";
-
-interface Task {
-  id: string;
-  titre: string;
-  description: string;
-  statut: TaskStatus;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  count?: number;
-  message?: string;
-  errors?: string[];
-}
-
-// ─── Configuration API ──────────────────────────────────────────
-// L'API est accessible via le chemin relatif /api grâce au proxy Replit.
-// Pour une migration vers un serveur distant, modifier uniquement cette constante.
-const API_BASE = "/api/tasks";
-
-// ─── État de l'application ──────────────────────────────────────
+// ─── État de l'application ────────────────────────────────────────────────────
 
 let allTasks: Task[] = [];
+
+// `editingId` est null quand le formulaire est en mode "création",
+// et contient l'id de la tâche en cours de modification.
 let editingId: string | null = null;
 
-// ─── Initialisation ─────────────────────────────────────────────
+// ─── Point d'entrée ───────────────────────────────────────────────────────────
 
 export function initApp(): void {
-  bindEvents();
-  loadTasks();
+  bindFormEvents();
+  loadAndRenderTasks();
 }
 
-// ─── Liaison des événements DOM ─────────────────────────────────
+// ─── Liaison des événements DOM ───────────────────────────────────────────────
 
-function bindEvents(): void {
-  const form = document.getElementById("task-form") as HTMLFormElement;
-  const cancelBtn = document.getElementById("cancel-btn") as HTMLButtonElement;
+function bindFormEvents(): void {
+  const form        = document.getElementById("task-form")     as HTMLFormElement;
+  const cancelBtn   = document.getElementById("cancel-btn")    as HTMLButtonElement;
   const filterSelect = document.getElementById("filter-statut") as HTMLSelectElement;
 
   form.addEventListener("submit", handleFormSubmit);
   cancelBtn.addEventListener("click", resetForm);
-  filterSelect.addEventListener("change", renderTasks);
+  filterSelect.addEventListener("change", renderTaskList);
 }
 
-// ─── CRUD — Lecture de toutes les tâches ───────────────────────
+// ─── Chargement initial ───────────────────────────────────────────────────────
 
-async function loadTasks(): Promise<void> {
-  showLoading(true);
-
+async function loadAndRenderTasks(): Promise<void> {
+  setLoadingVisible(true);
   try {
-    const res = await fetch(API_BASE);
-    if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
-
-    const json = (await res.json()) as ApiResponse<Task[]>;
-    allTasks = json.data ?? [];
-    updateCounter();
-    renderTasks();
-  } catch (err) {
+    allTasks = await TaskApi.fetchAll();
+    updateTaskCounter();
+    renderTaskList();
+  } catch {
     showToast("Impossible de charger les tâches.", "error");
-    console.error("loadTasks :", err);
   } finally {
-    showLoading(false);
+    setLoadingVisible(false);
   }
 }
 
-// ─── CRUD — Création d'une tâche ───────────────────────────────
+// ─── Gestionnaire de soumission du formulaire ─────────────────────────────────
 
-async function createTask(payload: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<void> {
-  const res = await fetch(API_BASE, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const json = (await res.json()) as ApiResponse<Task>;
-
-  if (!res.ok || !json.success) {
-    const msg = json.errors?.join(" ") ?? json.message ?? "Erreur lors de la création.";
-    throw new Error(msg);
-  }
-
-  if (json.data) {
-    allTasks.push(json.data);
-  }
-}
-
-// ─── CRUD — Mise à jour d'une tâche ────────────────────────────
-
-async function updateTask(id: string, payload: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const json = (await res.json()) as ApiResponse<Task>;
-
-  if (!res.ok || !json.success) {
-    const msg = json.errors?.join(" ") ?? json.message ?? "Erreur lors de la mise à jour.";
-    throw new Error(msg);
-  }
-
-  if (json.data) {
-    const index = allTasks.findIndex((t) => t.id === id);
-    if (index !== -1) allTasks[index] = json.data;
-  }
-}
-
-// ─── CRUD — Suppression d'une tâche ────────────────────────────
-
-async function deleteTask(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
-  const json = (await res.json()) as ApiResponse<null>;
-
-  if (!res.ok || !json.success) {
-    throw new Error(json.message ?? "Erreur lors de la suppression.");
-  }
-
-  allTasks = allTasks.filter((t) => t.id !== id);
-}
-
-// ─── Gestionnaire de soumission du formulaire ───────────────────
-
-async function handleFormSubmit(e: Event): Promise<void> {
-  e.preventDefault();
-
+async function handleFormSubmit(event: Event): Promise<void> {
+  event.preventDefault();
   if (!validateForm()) return;
 
-  const submitBtn = document.getElementById("submit-btn") as HTMLButtonElement;
+  const submitBtn   = document.getElementById("submit-btn")   as HTMLButtonElement;
   const submitLabel = document.getElementById("submit-label") as HTMLSpanElement;
+  const isEditing   = editingId !== null;
 
-  submitBtn.disabled = true;
-  submitLabel.textContent = editingId ? "Sauvegarde…" : "Ajout…";
+  submitBtn.disabled    = true;
+  submitLabel.textContent = isEditing ? "Sauvegarde…" : "Ajout…";
 
-  const payload = {
-    titre:       (document.getElementById("task-titre") as HTMLInputElement).value.trim(),
-    description: (document.getElementById("task-description") as HTMLTextAreaElement).value.trim(),
-    statut:      (document.getElementById("task-statut") as HTMLSelectElement).value as TaskStatus,
-  };
+  const payload = readFormValues();
 
   try {
-    if (editingId) {
-      await updateTask(editingId, payload);
+    if (isEditing) {
+      const updated = await TaskApi.update(editingId!, payload);
+      const index = allTasks.findIndex((t) => t.id === editingId);
+      if (index !== -1) allTasks[index] = updated;
       showToast("Tâche modifiée avec succès !", "success");
     } else {
-      await createTask(payload);
+      const created = await TaskApi.create(payload);
+      allTasks.push(created);
       showToast("Tâche ajoutée avec succès !", "success");
     }
-
     resetForm();
-    updateCounter();
-    renderTasks();
+    updateTaskCounter();
+    renderTaskList();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Une erreur est survenue.";
-    showToast(message, "error");
+    showToast(err instanceof Error ? err.message : "Une erreur est survenue.", "error");
   } finally {
-    submitBtn.disabled = false;
-    submitLabel.textContent = editingId ? "Enregistrer" : "Ajouter";
+    submitBtn.disabled    = false;
+    submitLabel.textContent = editingId !== null ? "Enregistrer" : "Ajouter";
   }
 }
 
-// ─── Remplissage du formulaire pour modification ────────────────
+// ─── Lecture des valeurs du formulaire ────────────────────────────────────────
 
-function populateFormForEdit(task: Task): void {
+function readFormValues(): Omit<Task, "id" | "createdAt" | "updatedAt"> {
+  return {
+    titre:       (document.getElementById("task-titre")       as HTMLInputElement).value.trim(),
+    description: (document.getElementById("task-description") as HTMLTextAreaElement).value.trim(),
+    statut:      (document.getElementById("task-statut")      as HTMLSelectElement).value as TaskStatus,
+  };
+}
+
+// ─── Gestion du formulaire (mode création / modification) ─────────────────────
+
+/** Bascule le formulaire en mode modification et remplit les champs avec les données de la tâche. */
+function openEditForm(task: Task): void {
   editingId = task.id;
 
-  (document.getElementById("task-id") as HTMLInputElement).value = task.id;
-  (document.getElementById("task-titre") as HTMLInputElement).value = task.titre;
+  (document.getElementById("task-id")          as HTMLInputElement).value    = task.id;
+  (document.getElementById("task-titre")       as HTMLInputElement).value    = task.titre;
   (document.getElementById("task-description") as HTMLTextAreaElement).value = task.description;
-  (document.getElementById("task-statut") as HTMLSelectElement).value = task.statut;
+  (document.getElementById("task-statut")      as HTMLSelectElement).value   = task.statut;
 
-  const heading     = document.getElementById("form-heading") as HTMLHeadingElement;
-  const submitLabel = document.getElementById("submit-label") as HTMLSpanElement;
-  const btnIcon     = document.querySelector(".btn-icon") as HTMLSpanElement;
-  const cancelBtn   = document.getElementById("cancel-btn") as HTMLButtonElement;
-
-  heading.textContent      = "Modifier la tâche";
-  submitLabel.textContent  = "Enregistrer";
-  btnIcon.textContent      = "✓";
-  cancelBtn.style.display  = "inline-flex";
-
-  // Faire défiler vers le formulaire sur mobile
+  setFormMode("edit");
   document.querySelector(".form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-// ─── Réinitialisation du formulaire ────────────────────────────
-
+/** Réinitialise le formulaire et revient en mode création. */
 function resetForm(): void {
   editingId = null;
-
   (document.getElementById("task-form") as HTMLFormElement).reset();
-  (document.getElementById("task-id") as HTMLInputElement).value = "";
-
-  const heading     = document.getElementById("form-heading") as HTMLHeadingElement;
-  const submitLabel = document.getElementById("submit-label") as HTMLSpanElement;
-  const btnIcon     = document.querySelector(".btn-icon") as HTMLSpanElement;
-  const cancelBtn   = document.getElementById("cancel-btn") as HTMLButtonElement;
-
-  heading.textContent      = "Ajouter une tâche";
-  submitLabel.textContent  = "Ajouter";
-  btnIcon.textContent      = "+";
-  cancelBtn.style.display  = "none";
-
+  (document.getElementById("task-id")   as HTMLInputElement).value = "";
+  setFormMode("create");
   clearFieldErrors();
 }
 
-// ─── Validation du formulaire côté client ──────────────────────
+/**
+ * Met à jour les textes et l'affichage du formulaire selon le mode.
+ * Centralise les changements qui étaient dupliqués entre openEditForm et resetForm.
+ */
+function setFormMode(mode: "create" | "edit"): void {
+  const isEdit = mode === "edit";
+
+  (document.getElementById("form-heading")  as HTMLHeadingElement).textContent  = isEdit ? "Modifier la tâche"  : "Ajouter une tâche";
+  (document.getElementById("submit-label")  as HTMLSpanElement).textContent     = isEdit ? "Enregistrer"        : "Ajouter";
+  (document.querySelector(".btn-icon")      as HTMLSpanElement).textContent      = isEdit ? "✓"                 : "+";
+  (document.getElementById("cancel-btn")   as HTMLButtonElement).style.display  = isEdit ? "inline-flex"       : "none";
+}
+
+// ─── Validation côté client ───────────────────────────────────────────────────
 
 function validateForm(): boolean {
   clearFieldErrors();
-  let valid = true;
+  let isValid = true;
 
-  const titreInput = document.getElementById("task-titre") as HTMLInputElement;
+  const titreInput = document.getElementById("task-titre")       as HTMLInputElement;
   const descInput  = document.getElementById("task-description") as HTMLTextAreaElement;
 
   if (!titreInput.value.trim()) {
     showFieldError("titre-error", "Le titre est requis.");
     titreInput.classList.add("error");
-    valid = false;
+    isValid = false;
   } else {
     titreInput.classList.remove("error");
   }
@@ -238,16 +155,16 @@ function validateForm(): boolean {
   if (!descInput.value.trim()) {
     showFieldError("description-error", "La description est requise.");
     descInput.classList.add("error");
-    valid = false;
+    isValid = false;
   } else {
     descInput.classList.remove("error");
   }
 
-  return valid;
+  return isValid;
 }
 
-function showFieldError(id: string, message: string): void {
-  const el = document.getElementById(id);
+function showFieldError(elementId: string, message: string): void {
+  const el = document.getElementById(elementId);
   if (el) el.textContent = message;
 }
 
@@ -256,68 +173,76 @@ function clearFieldErrors(): void {
   document.querySelectorAll(".form-input, .form-textarea").forEach((el) => el.classList.remove("error"));
 }
 
-// ─── Rendu de la liste des tâches ──────────────────────────────
+// ─── Rendu de la liste des tâches ─────────────────────────────────────────────
 
-function renderTasks(): void {
-  const container    = document.getElementById("task-list") as HTMLDivElement;
-  const emptyState   = document.getElementById("empty-state") as HTMLDivElement;
-  const filterValue  = (document.getElementById("filter-statut") as HTMLSelectElement).value;
+function renderTaskList(): void {
+  const taskListEl  = document.getElementById("task-list")     as HTMLDivElement;
+  const emptyEl     = document.getElementById("empty-state")   as HTMLDivElement;
+  const filterValue = (document.getElementById("filter-statut") as HTMLSelectElement).value;
 
-  const filtered = filterValue
-    ? allTasks.filter((t) => t.statut === filterValue)
+  const visibleTasks = filterValue
+    ? allTasks.filter((task) => task.statut === filterValue)
     : allTasks;
 
-  if (filtered.length === 0) {
-    container.style.display  = "none";
-    emptyState.style.display = "flex";
+  if (visibleTasks.length === 0) {
+    taskListEl.style.display = "none";
+    emptyEl.style.display    = "flex";
     return;
   }
 
-  emptyState.style.display = "none";
-  container.style.display  = "flex";
-  container.innerHTML      = filtered.map(renderTaskCard).join("");
+  emptyEl.style.display    = "none";
+  taskListEl.style.display = "flex";
+  taskListEl.innerHTML     = visibleTasks.map(buildTaskCardHTML).join("");
 
-  // Lier les boutons Modifier / Supprimer
+  bindTaskCardButtons(taskListEl);
+}
+
+/** Attache les événements des boutons Modifier / Supprimer après le rendu. */
+function bindTaskCardButtons(container: HTMLDivElement): void {
   container.querySelectorAll<HTMLButtonElement>(".btn-edit").forEach((btn) => {
     btn.addEventListener("click", () => {
       const task = allTasks.find((t) => t.id === btn.dataset["id"]);
-      if (task) populateFormForEdit(task);
+      if (task) openEditForm(task);
     });
   });
 
   container.querySelectorAll<HTMLButtonElement>(".btn-delete").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const id    = btn.dataset["id"] ?? "";
-      const task  = allTasks.find((t) => t.id === id);
-      if (!task) return;
-
-      if (!confirm(`Supprimer la tâche "${task.titre}" ? Cette action est irréversible.`)) return;
-
-      btn.disabled   = true;
-      btn.textContent = "…";
-
-      try {
-        await deleteTask(id);
-        updateCounter();
-        renderTasks();
-        showToast("Tâche supprimée.", "info");
-        if (editingId === id) resetForm();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Erreur lors de la suppression.";
-        showToast(message, "error");
-        btn.disabled    = false;
-        btn.textContent = "Supprimer";
-      }
-    });
+    btn.addEventListener("click", () => handleDeleteClick(btn));
   });
 }
 
-// ─── Génération HTML d'une carte de tâche ──────────────────────
+async function handleDeleteClick(btn: HTMLButtonElement): Promise<void> {
+  const id   = btn.dataset["id"] ?? "";
+  const task = allTasks.find((t) => t.id === id);
+  if (!task) return;
 
-function renderTaskCard(task: Task): string {
-  const badgeClass = statusBadgeClass(task.statut);
-  const date       = new Date(task.updatedAt).toLocaleDateString("fr-FR", {
-    day: "2-digit", month: "short", year: "numeric",
+  if (!confirm(`Supprimer "${task.titre}" ? Cette action est irréversible.`)) return;
+
+  btn.disabled    = true;
+  btn.textContent = "…";
+
+  try {
+    await TaskApi.remove(id);
+    allTasks = allTasks.filter((t) => t.id !== id);
+    if (editingId === id) resetForm();
+    updateTaskCounter();
+    renderTaskList();
+    showToast("Tâche supprimée.", "info");
+  } catch (err) {
+    showToast(err instanceof Error ? err.message : "Erreur lors de la suppression.", "error");
+    btn.disabled    = false;
+    btn.textContent = "🗑 Supprimer";
+  }
+}
+
+// ─── Génération HTML d'une carte de tâche ────────────────────────────────────
+
+function buildTaskCardHTML(task: Task): string {
+  const badgeClass = getStatusBadgeClass(task.statut);
+  const updatedDate = new Date(task.updatedAt).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 
   return `
@@ -330,23 +255,18 @@ function renderTaskCard(task: Task): string {
         </span>
       </div>
       <p class="task-description">${esc(task.description)}</p>
-      <p class="task-meta">Modifiée le ${date}</p>
+      <p class="task-meta">Modifiée le ${updatedDate}</p>
       <div class="task-card-footer">
-        <button class="btn btn-edit" data-id="${esc(task.id)}" title="Modifier cette tâche">
-          ✏ Modifier
-        </button>
-        <button class="btn btn-delete" data-id="${esc(task.id)}" title="Supprimer cette tâche">
-          🗑 Supprimer
-        </button>
+        <button class="btn btn-edit"   data-id="${esc(task.id)}" title="Modifier cette tâche">✏ Modifier</button>
+        <button class="btn btn-delete" data-id="${esc(task.id)}" title="Supprimer cette tâche">🗑 Supprimer</button>
       </div>
     </article>
   `;
 }
 
-// ─── Utilitaires ───────────────────────────────────────────────
+// ─── Fonctions utilitaires ────────────────────────────────────────────────────
 
-/** Classe CSS pour le badge de statut */
-function statusBadgeClass(statut: TaskStatus): string {
+function getStatusBadgeClass(statut: TaskStatus): string {
   switch (statut) {
     case "À faire":  return "badge-todo";
     case "En cours": return "badge-inprogress";
@@ -354,46 +274,42 @@ function statusBadgeClass(statut: TaskStatus): string {
   }
 }
 
-/** Échappe les caractères HTML pour éviter les injections XSS */
-function esc(str: string): string {
-  return String(str)
-    .replace(/&/g,  "&amp;")
-    .replace(/</g,  "&lt;")
-    .replace(/>/g,  "&gt;")
-    .replace(/"/g,  "&quot;")
-    .replace(/'/g,  "&#039;");
+/** Échappe les caractères spéciaux HTML pour prévenir les injections XSS. */
+function esc(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-/** Affiche / masque l'indicateur de chargement */
-function showLoading(visible: boolean): void {
-  const loading = document.getElementById("loading-state") as HTMLDivElement;
-  const list    = document.getElementById("task-list") as HTMLDivElement;
-  const empty   = document.getElementById("empty-state") as HTMLDivElement;
+function setLoadingVisible(visible: boolean): void {
+  const loadingEl = document.getElementById("loading-state") as HTMLDivElement;
+  const taskListEl = document.getElementById("task-list")    as HTMLDivElement;
+  const emptyEl    = document.getElementById("empty-state")  as HTMLDivElement;
 
-  loading.style.display = visible ? "flex" : "none";
+  loadingEl.style.display = visible ? "flex" : "none";
   if (visible) {
-    list.style.display  = "none";
-    empty.style.display = "none";
+    taskListEl.style.display = "none";
+    emptyEl.style.display    = "none";
   }
 }
 
-/** Met à jour le compteur de tâches dans l'en-tête */
-function updateCounter(): void {
-  const el = document.getElementById("counter-total");
-  if (el) el.textContent = String(allTasks.length);
+function updateTaskCounter(): void {
+  const counterEl = document.getElementById("counter-total");
+  if (counterEl) counterEl.textContent = String(allTasks.length);
 }
 
-/** Affiche une notification temporaire (toast) */
 function showToast(message: string, type: "success" | "error" | "info" = "info"): void {
   const container = document.getElementById("toast-container") as HTMLDivElement;
-  const icons     = { success: "✓", error: "✕", info: "ℹ" };
+  const icons = { success: "✓", error: "✕", info: "ℹ" };
 
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
   toast.innerHTML = `<span>${icons[type]}</span><span>${esc(message)}</span>`;
   container.appendChild(toast);
 
-  // Fermeture automatique après 3 s
   setTimeout(() => {
     toast.classList.add("hide");
     toast.addEventListener("animationend", () => toast.remove());
